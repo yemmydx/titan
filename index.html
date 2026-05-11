@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3DHOPE — Intelligent Machines Building Homes for the New East</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Manrope:wght@200;300;400;500;600&family=JetBrains+Mono:wght@300;400&family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+  /* HOME-SPECIFIC */
+  .home{position:relative;min-height:120vh;display:flex;align-items:center;justify-content:center;padding:160px var(--pad) 120px}
+  .home-bg{
+    position:fixed;inset:0;z-index:-1;overflow:hidden;
+    background:
+      radial-gradient(ellipse at 50% 18%, rgba(201,162,107,0.22), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(58,42,28,0.5), transparent 55%),
+      linear-gradient(180deg,#0a0a0a 0%,#13100c 50%,#0a0a0a 100%);
+  }
+  /* technical grid floor */
+  .home-bg::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(201,162,107,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,162,107,0.06) 1px, transparent 1px);
+    background-size:80px 80px;
+    background-position:center bottom;
+    mask:linear-gradient(180deg, transparent 0%, transparent 35%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.9) 100%);
+    -webkit-mask:linear-gradient(180deg, transparent 0%, transparent 35%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.9) 100%);
+    transform-origin:center bottom;
+    transform:perspective(900px) rotateX(60deg) translateY(60%) scale(2.4);
+    opacity:0.8;
+  }
+  .home-bg::after{
+    content:"";position:absolute;inset:0;
+    background:
+      linear-gradient(180deg, rgba(10,10,10,0.15) 0%, rgba(10,10,10,0.0) 30%, rgba(10,10,10,0) 55%, rgba(10,10,10,0.55) 100%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
+    pointer-events:none;
+  }
+
+  /* the printer scene */
+  .printer-scene{
+    position:absolute;
+    left:50%;bottom:5%;
+    width:min(1400px,96vw);
+    aspect-ratio:16/9;
+    transform:translateX(-50%);
+    pointer-events:none;
+    will-change:transform;
+  }
+  .printer-scene svg{width:100%;height:100%;overflow:visible}
+  .ps-rail{stroke:rgba(201,162,107,0.35);stroke-width:1.2;fill:none}
+  .ps-rail-tick{stroke:rgba(201,162,107,0.5);stroke-width:1}
+  .ps-frame{stroke:var(--accent);stroke-width:1.5;fill:none;opacity:0.9}
+  .ps-frame-soft{stroke:rgba(201,162,107,0.6);stroke-width:1;fill:none}
+  .ps-fill{fill:rgba(201,162,107,0.05);stroke:var(--accent);stroke-width:1.2}
+  .ps-text{fill:rgba(201,162,107,0.55);font-family:var(--mono);font-size:9px;letter-spacing:0.12em}
+  .ps-text-dim{fill:rgba(189,182,168,0.4);font-family:var(--mono);font-size:8px;letter-spacing:0.1em}
+  .ps-tick{stroke:rgba(189,182,168,0.3);stroke-width:1}
+  /* the gantry — moves horizontally */
+  .ps-gantry{
+    transform-origin:center;
+    animation:gantryPath 18s ease-in-out infinite;
+    will-change:transform;
+  }
+  @keyframes gantryPath{
+    0%{transform:translateX(-22%)}
+    50%{transform:translateX(22%)}
+    100%{transform:translateX(-22%)}
+  }
+  html[dir="rtl"] .ps-gantry{animation-direction:reverse}
+  /* extruded line (sparkle below nozzle) */
+  .ps-extrude{
+    stroke:var(--accent);
+    stroke-width:1.4;
+    fill:none;
+    filter:drop-shadow(0 0 6px rgba(201,162,107,0.8));
+    animation:extrudeFlicker 0.4s steps(2) infinite;
+  }
+  @keyframes extrudeFlicker{
+    0%,100%{opacity:0.85}
+    50%{opacity:1}
+  }
+  /* the printed wall — grows in CSS */
+  .ps-wall-layer{
+    fill:rgba(245,241,234,0.04);
+    stroke:rgba(201,162,107,0.7);
+    stroke-width:0.6;
+  }
+  /* dust particles */
+  .ps-dust{
+    fill:var(--accent);
+    opacity:0;
+    animation:dustFloat 3s linear infinite;
+  }
+  @keyframes dustFloat{
+    0%{opacity:0;transform:translateY(0) translateX(0)}
+    10%{opacity:0.6}
+    100%{opacity:0;transform:translateY(-40px) translateX(20px)}
+  }
+  /* scanning measurement lines */
+  .ps-scanline{
+    stroke:rgba(201,162,107,0.45);
+    stroke-width:0.6;
+    stroke-dasharray:3 3;
+    fill:none;
+  }
+  /* corner technical marks */
+  .ps-corner-frame{
+    position:absolute;
+    left:0;right:0;top:0;bottom:0;
+    pointer-events:none;
+  }
+  .ps-tag{
+    position:absolute;
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--accent);
+    letter-spacing:0.15em;
+    opacity:0.7;
+  }
+  .ps-tag.tl{top:8%;left:4%}
+  .ps-tag.tr{top:8%;right:4%;color:var(--fg-dim)}
+  .ps-tag.bl{bottom:8%;left:4%;color:var(--fg-dim)}
+  .ps-tag.br{bottom:8%;right:4%}
+  @media (max-width:880px){
+    .ps-tag{font-size:9px}
+    .printer-scene{aspect-ratio:4/3}
+  }
+
+  /* scroll hint */
+  .scroll-cue{
+    position:absolute;left:50%;bottom:30px;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:10px;letter-spacing:0.2em;color:var(--fg-dim);
+    z-index:2;opacity:0.6;
+  }
+  .scroll-cue .bar{
+    width:1px;height:40px;
+    background:linear-gradient(180deg,transparent,var(--accent),transparent);
+    animation:scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse{
+    0%,100%{transform:scaleY(0.4) translateY(-50%);opacity:0.4}
+    50%{transform:scaleY(1) translateY(0);opacity:1}
+  }
+
+  /* Editorial headline */
+  .editorial{
+    max-width:1320px;font-family:var(--serif);font-weight:300;
+    font-size:clamp(38px,6.2vw,108px);line-height:1.02;letter-spacing:-0.025em;
+    color:var(--fg);
+    /* support arabic look */
+  }
+  html[dir="rtl"] .editorial{font-family:var(--ar-serif);font-weight:400;line-height:1.15;letter-spacing:0;font-size:clamp(34px,5.4vw,92px)}
+  .editorial .pill{
+    display:inline-flex;align-items:center;gap:14px;
+    border:1px solid var(--accent);color:var(--accent);
+    padding:6px 22px;border-radius:999px;
+    transform:translateY(-0.08em);
+    transition:background .3s, color .3s, padding .3s;
+    font-family:var(--serif);font-weight:400;font-style:italic;
+    line-height:1;
+    margin:0 4px;
+  }
+  html[dir="rtl"] .editorial .pill{font-family:var(--ar-serif);font-style:normal;font-weight:500}
+  .editorial .pill .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;transition:background .3s}
+  .editorial .pill:hover{background:var(--accent);color:#0a0a0a}
+  .editorial .pill:hover .dot{background:#0a0a0a}
+  .editorial .pill .ar-spacing{margin-inline-start:6px}
+
+  .editorial em{font-style:italic;color:var(--accent)}
+  html[dir="rtl"] .editorial em{font-style:normal;color:var(--accent)}
+
+  /* sub line under editorial */
+  .home-tag{margin-top:80px;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:end}
+  @media (max-width:880px){ .home-tag{grid-template-columns:1fr;gap:24px;margin-top:50px} }
+  .home-tag .lede{max-width:48ch}
+  .home-tag-meta{display:flex;flex-direction:column;align-items:flex-start;gap:18px;color:var(--fg-dim);font-family:var(--mono);font-size:11px;letter-spacing:.15em}
+  .home-tag-meta b{color:var(--accent);font-weight:400}
+
+  /* scrolling marquee strip */
+  .marquee{
+    overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:22px 0;background:#08070a;position:relative;z-index:1
+  }
+  .marquee-track{display:flex;gap:60px;animation:marq 50s linear infinite;white-space:nowrap;width:max-content}
+  @keyframes marq{from{transform:translateX(0)} to{transform:translateX(-50%)}}
+  html[dir="rtl"] .marquee-track{animation-direction:reverse}
+  .marquee span{font-family:var(--serif);font-weight:300;font-size:32px;color:var(--fg-dim);display:flex;align-items:center;gap:60px}
+  html[dir="rtl"] .marquee span{font-family:var(--ar-serif);font-weight:400}
+  .marquee span::after{content:"";width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block}
+
+  /* what we do — two big cards */
+  .ww{padding:160px 0;border-top:1px solid var(--line)}
+  .ww-head{display:grid;grid-template-columns:1fr 1.4fr;gap:60px;align-items:end;margin-bottom:80px}
+  @media (max-width:880px){ .ww-head{grid-template-columns:1fr;gap:24px} }
+  .ww-cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+  @media (max-width:880px){ .ww-cards{grid-template-columns:1fr} }
+  .ww-card{background:#0a0908;padding:40px;display:flex;flex-direction:column;gap:28px;min-height:560px;transition:background .35s}
+  .ww-card:hover{background:#100e0a}
+  .ww-card .ph{flex:1;min-height:280px}
+  .ww-card h3{font-family:var(--serif);font-weight:400;font-size:clamp(34px,3.5vw,48px);line-height:1.05;letter-spacing:-0.015em}
+  html[dir="rtl"] .ww-card h3{font-family:var(--ar-serif);line-height:1.25}
+  .ww-card .row{display:flex;justify-content:space-between;align-items:end;gap:20px;border-top:1px solid var(--line);padding-top:24px;margin-top:auto}
+  .ww-card .row p{color:var(--fg-dim);font-size:15px;max-width:38ch;line-height:1.6}
+  .ww-card .row .go{
+    display:inline-flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--accent);
+    flex-shrink:0;transition:gap .3s
+  }
+  .ww-card:hover .row .go{gap:20px}
+
+  /* stat strip */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media (max-width:880px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  .stat{background:var(--bg);padding:48px 32px;display:flex;flex-direction:column;gap:14px}
+  .stat b{font-family:var(--serif);font-weight:300;font-size:clamp(46px,5vw,76px);color:var(--accent);line-height:1;letter-spacing:-0.02em}
+  .stat span{font-family:var(--mono);font-size:11px;color:var(--fg-dim);letter-spacing:.12em}
+
+  /* news preview */
+  .news{padding:160px 0;border-top:1px solid var(--line)}
+  .news-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:60px;gap:30px;flex-wrap:wrap}
+  .news-list a{
+    display:grid;grid-template-columns:120px 1fr 2fr 100px;gap:24px;align-items:center;
+    padding:28px 0;border-top:1px solid var(--line);transition:padding .35s;
+  }
+  .news-list a:last-child{border-bottom:1px solid var(--line)}
+  @media (max-width:880px){ .news-list a{grid-template-columns:90px 1fr;gap:10px} .news-list a .nd{grid-column:1/-1;color:var(--fg-dim)} .news-list a .nv{display:none} }
+  .news-list a:hover{padding-left:14px}
+  html[dir="rtl"] .news-list a:hover{padding-left:0;padding-right:14px}
+  .news-list .nd-date{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.12em}
+  .news-list .nd-title{font-family:var(--serif);font-size:24px;font-weight:400;line-height:1.2;letter-spacing:-0.01em}
+  html[dir="rtl"] .news-list .nd-title{font-family:var(--ar-serif);line-height:1.4}
+  .news-list .nd-desc{color:var(--fg-dim);font-size:14px;line-height:1.5}
+  .news-list .nv{font-family:var(--mono);font-size:11px;color:var(--accent);text-align:right;letter-spacing:.1em}
+  html[dir="rtl"] .news-list .nv{text-align:left}
+
+  /* newsletter */
+  .nl{padding:140px 0;border-top:1px solid var(--line);background:#08070a}
+  .nl-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:60px;align-items:center}
+  @media (max-width:880px){ .nl-grid{grid-template-columns:1fr;gap:24px} }
+  .nl-form{display:flex;gap:0;border:1px solid var(--line-strong);background:#0a0a0a;max-width:520px}
+  .nl-form input{
+    flex:1;background:transparent;border:0;outline:0;color:var(--fg);
+    padding:18px 22px;font:inherit;font-size:15px;font-weight:300
+  }
+  .nl-form input::placeholder{color:var(--muted)}
+  .nl-form button{padding:0 28px;background:var(--accent);color:#0a0a0a;font-family:var(--mono);font-size:11px;letter-spacing:.15em;transition:background .25s}
+  .nl-form button:hover{background:#e0b986}
+
+  /* footer */
+  footer.foot{
+    border-top:1px solid var(--line);padding:80px var(--pad) 100px;background:#06050a;
+  }
+  .foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:60px;max-width:1480px;margin:0 auto}
+  @media (max-width:880px){ .foot-grid{grid-template-columns:1fr 1fr;gap:40px} }
+  .foot-grid h5{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:20px;letter-spacing:.15em}
+  .foot-grid ul li{padding:6px 0;font-size:14px;color:var(--fg-dim);transition:color .25s;cursor:pointer}
+  .foot-grid ul li:hover{color:var(--accent)}
+  .foot-tag{font-family:var(--serif);font-size:22px;color:var(--fg);line-height:1.3;margin-top:16px;max-width:30ch}
+  html[dir="rtl"] .foot-tag{font-family:var(--ar-serif);line-height:1.5}
+
+  /* social row */
+  .socials{display:flex;gap:10px;margin-top:30px}
+  .socials a{
+    width:38px;height:38px;border:1px solid var(--line-strong);display:grid;place-items:center;
+    color:var(--fg-dim);transition:all .25s;
+  }
+  .socials a:hover{border-color:var(--accent);color:var(--accent)}
+  .socials a svg{width:14px;height:14px}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <a href="index.html" class="logo">
+    <span class="mark">3D</span>
+    <span>3DHOPE</span>
+  </a>
+  <div class="nav-right">
+    <div class="lang-toggle">
+      <span class="pill"></span>
+      <button data-lang-btn="en" class="active">EN</button>
+      <button data-lang-btn="ar">ع</button>
+    </div>
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span><span></span></span>
+      <span data-en>MENU</span><span data-ar>القائمة</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MENU OVERLAY -->
+<aside class="menu-overlay">
+  <div class="menu-head">
+    <a href="index.html" class="logo">
+      <span class="mark">3D</span>
+      <span>3DHOPE</span>
+    </a>
+    <button class="menu-close" data-close-menu>
+      <span data-en>CLOSE</span><span data-ar>إغلاق</span>
+      <span class="x"></span>
+    </button>
+  </div>
+  <div class="menu-body">
+    <nav class="menu-links">
+      <a href="design-build.html"><span class="num">/ 01</span><span data-en>Design + Build</span><span data-ar>التصميم والبناء</span></a>
+      <a href="technology.html"><span class="num">/ 02</span><span data-en>Technology</span><span data-ar>التقنية</span></a>
+      <a href="design-build.html#projects"><span class="num">/ 03</span><span data-en>Projects</span><span data-ar>المشاريع</span></a>
+      <a href="newsroom.html"><span class="num">/ 04</span><span data-en>Newsroom</span><span data-ar>الأخبار</span></a>
+      <a href="contact.html"><span class="num">/ 05</span><span data-en>Contact</span><span data-ar>تواصل</span></a>
+    </nav>
+    <aside class="menu-side">
+      <div>
+        <h6><span data-en>STUDIOS</span><span data-ar>الاستوديوهات</span></h6>
+        <p>Abu Dhabi · Saadiyat<br>Riyadh · KAFD<br>Sharjah · Al-Khan</p>
+      </div>
+      <div>
+        <h6><span data-en>CONTACT</span><span data-ar>تواصل</span></h6>
+        <p>hello@3dhope.ae<br>+971 2 449 0301</p>
+      </div>
+      <div>
+        <h6><span data-en>FOLLOW</span><span data-ar>تابعنا</span></h6>
+        <p>Instagram · LinkedIn<br>YouTube · X</p>
+      </div>
+    </aside>
+  </div>
+</aside>
+
+<!-- HOME -->
+<main class="home">
+  <div class="home-bg" id="homeBg">
+    <!-- Tech corner tags -->
+    <span class="ps-tag tl">SCENE · 01</span>
+    <span class="ps-tag tr"><span data-en>GANTRY · HOPE-G12</span><span data-ar>الرافعة · HOPE-G12</span></span>
+    <span class="ps-tag bl">LAT · 24.4539° N &nbsp; LON · 54.3773° E</span>
+    <span class="ps-tag br"><span data-en>LAYER 047 / 210</span><span data-ar>الطبقة ٠٤٧ / ٢١٠</span></span>
+
+    <!-- 3D printer scene -->
+    <div class="printer-scene" id="printerScene">
+      <svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="rgba(201,162,107,0.18)"/>
+            <stop offset="1" stop-color="rgba(245,241,234,0.02)"/>
+          </linearGradient>
+          <radialGradient id="nozzleGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="rgba(255,210,140,0.9)"/>
+            <stop offset="0.4" stop-color="rgba(201,162,107,0.5)"/>
+            <stop offset="1" stop-color="rgba(201,162,107,0)"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Horizontal rail / base track -->
+        <line class="ps-rail" x1="60" y1="780" x2="1540" y2="780"/>
+        <line class="ps-rail" x1="60" y1="790" x2="1540" y2="790" opacity="0.5"/>
+        <!-- Rail ticks (measurement) -->
+        <g class="ps-rail-tick">
+          <line x1="100" y1="780" x2="100" y2="795"/>
+          <line x1="220" y1="780" x2="220" y2="795"/>
+          <line x1="340" y1="780" x2="340" y2="795"/>
+          <line x1="460" y1="780" x2="460" y2="795"/>
+          <line x1="580" y1="780" x2="580" y2="795"/>
+          <line x1="700" y1="780" x2="700" y2="795"/>
+          <line x1="820" y1="780" x2="820" y2="795"/>
+          <line x1="940" y1="780" x2="940" y2="795"/>
+          <line x1="1060" y1="780" x2="1060" y2="795"/>
+          <line x1="1180" y1="780" x2="1180" y2="795"/>
+          <line x1="1300" y1="780" x2="1300" y2="795"/>
+          <line x1="1420" y1="780" x2="1420" y2="795"/>
+        </g>
+        <!-- Scale labels -->
+        <text class="ps-text-dim" x="100" y="815">0m</text>
+        <text class="ps-text-dim" x="460" y="815">3m</text>
+        <text class="ps-text-dim" x="820" y="815">6m</text>
+        <text class="ps-text-dim" x="1180" y="815">9m</text>
+        <text class="ps-text-dim" x="1420" y="815">12m</text>
+
+        <!-- Printed wall (grows with scroll via JS) -->
+        <g id="printedWall">
+          <!-- foundation -->
+          <rect x="600" y="760" width="380" height="20" fill="rgba(201,162,107,0.15)" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <!-- wall layers — each "stripe" is one print pass -->
+          <g id="wallLayers">
+            <!-- layers will be revealed by JS as the user scrolls -->
+            <rect class="ps-wall-layer wl" x="610" y="752" width="360" height="8" data-layer="1"/>
+            <rect class="ps-wall-layer wl" x="610" y="744" width="360" height="8" data-layer="2"/>
+            <rect class="ps-wall-layer wl" x="610" y="736" width="360" height="8" data-layer="3"/>
+            <rect class="ps-wall-layer wl" x="610" y="728" width="360" height="8" data-layer="4"/>
+            <rect class="ps-wall-layer wl" x="610" y="720" width="360" height="8" data-layer="5"/>
+            <rect class="ps-wall-layer wl" x="610" y="712" width="360" height="8" data-layer="6"/>
+            <rect class="ps-wall-layer wl" x="610" y="704" width="360" height="8" data-layer="7"/>
+            <rect class="ps-wall-layer wl" x="610" y="696" width="360" height="8" data-layer="8"/>
+            <rect class="ps-wall-layer wl" x="610" y="688" width="360" height="8" data-layer="9"/>
+            <rect class="ps-wall-layer wl" x="610" y="680" width="360" height="8" data-layer="10"/>
+            <rect class="ps-wall-layer wl" x="610" y="672" width="360" height="8" data-layer="11"/>
+            <rect class="ps-wall-layer wl" x="610" y="664" width="360" height="8" data-layer="12"/>
+            <rect class="ps-wall-layer wl" x="610" y="656" width="360" height="8" data-layer="13"/>
+            <rect class="ps-wall-layer wl" x="610" y="648" width="360" height="8" data-layer="14"/>
+            <rect class="ps-wall-layer wl" x="610" y="640" width="360" height="8" data-layer="15"/>
+            <rect class="ps-wall-layer wl" x="610" y="632" width="360" height="8" data-layer="16"/>
+            <rect class="ps-wall-layer wl" x="610" y="624" width="360" height="8" data-layer="17"/>
+            <rect class="ps-wall-layer wl" x="610" y="616" width="360" height="8" data-layer="18"/>
+            <rect class="ps-wall-layer wl" x="610" y="608" width="360" height="8" data-layer="19"/>
+            <rect class="ps-wall-layer wl" x="610" y="600" width="360" height="8" data-layer="20"/>
+            <rect class="ps-wall-layer wl" x="610" y="592" width="360" height="8" data-layer="21"/>
+            <rect class="ps-wall-layer wl" x="610" y="584" width="360" height="8" data-layer="22"/>
+            <rect class="ps-wall-layer wl" x="610" y="576" width="360" height="8" data-layer="23"/>
+            <rect class="ps-wall-layer wl" x="610" y="568" width="360" height="8" data-layer="24"/>
+          </g>
+          <!-- door opening -->
+          <rect x="680" y="600" width="60" height="160" fill="rgba(10,10,10,0.9)" stroke="rgba(201,162,107,0.3)" stroke-width="0.5"/>
+          <!-- window opening -->
+          <rect x="820" y="600" width="80" height="60" fill="rgba(10,10,10,0.85)" stroke="rgba(201,162,107,0.3)" stroke-width="0.5"/>
+        </g>
+
+        <!-- The gantry — wraps so it can be translated horizontally -->
+        <g class="ps-gantry" id="psGantry">
+          <!-- left vertical column -->
+          <rect class="ps-frame" x="270" y="180" width="22" height="600" rx="2"/>
+          <rect class="ps-fill" x="274" y="200" width="14" height="560"/>
+          <!-- detail dashes on column -->
+          <line x1="270" y1="280" x2="292" y2="280" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="270" y1="380" x2="292" y2="380" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="270" y1="480" x2="292" y2="480" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="270" y1="580" x2="292" y2="580" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="270" y1="680" x2="292" y2="680" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+
+          <!-- right vertical column -->
+          <rect class="ps-frame" x="1308" y="180" width="22" height="600" rx="2"/>
+          <rect class="ps-fill" x="1312" y="200" width="14" height="560"/>
+          <line x1="1308" y1="280" x2="1330" y2="280" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="1308" y1="380" x2="1330" y2="380" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="1308" y1="480" x2="1330" y2="480" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="1308" y1="580" x2="1330" y2="580" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+          <line x1="1308" y1="680" x2="1330" y2="680" stroke="rgba(201,162,107,0.4)" stroke-width="0.6"/>
+
+          <!-- top beam (horizontal) -->
+          <rect class="ps-frame" x="270" y="180" width="1060" height="18" rx="2"/>
+          <rect class="ps-fill" x="280" y="184" width="1040" height="10"/>
+          <!-- beam crosshatch -->
+          <line x1="380" y1="180" x2="380" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="480" y1="180" x2="480" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="580" y1="180" x2="580" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="680" y1="180" x2="680" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="780" y1="180" x2="780" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="880" y1="180" x2="880" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="980" y1="180" x2="980" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="1080" y1="180" x2="1080" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+          <line x1="1180" y1="180" x2="1180" y2="198" stroke="rgba(201,162,107,0.35)" stroke-width="0.6"/>
+
+          <!-- bracing — diagonals at top corners -->
+          <line x1="270" y1="198" x2="340" y2="240" class="ps-frame-soft"/>
+          <line x1="1330" y1="198" x2="1260" y2="240" class="ps-frame-soft"/>
+
+          <!-- bottom mounts on rail -->
+          <rect class="ps-frame" x="250" y="780" width="62" height="20" rx="1"/>
+          <rect class="ps-frame" x="1288" y="780" width="62" height="20" rx="1"/>
+          <circle cx="265" cy="800" r="5" class="ps-frame-soft"/>
+          <circle cx="295" cy="800" r="5" class="ps-frame-soft"/>
+          <circle cx="1305" cy="800" r="5" class="ps-frame-soft"/>
+          <circle cx="1335" cy="800" r="5" class="ps-frame-soft"/>
+
+          <!-- the print head trolley (slides along beam) -->
+          <g id="psPrintHead">
+            <!-- trolley body -->
+            <rect class="ps-frame" x="760" y="200" width="80" height="60" rx="1"/>
+            <rect class="ps-fill" x="765" y="204" width="70" height="52"/>
+            <text class="ps-text" x="772" y="222">G-12</text>
+            <text class="ps-text-dim" x="772" y="238">PRINT</text>
+            <text class="ps-text-dim" x="772" y="250">HEAD</text>
+            <!-- nozzle assembly -->
+            <rect class="ps-frame" x="788" y="260" width="24" height="30"/>
+            <polygon class="ps-frame" points="788,290 812,290 808,310 792,310" fill="rgba(201,162,107,0.12)"/>
+            <!-- nozzle glow -->
+            <circle cx="800" cy="312" r="20" fill="url(#nozzleGlow)"/>
+            <!-- extruded line -->
+            <path class="ps-extrude" d="M 800 312 Q 800 360 800 410 T 800 510" stroke-linecap="round"/>
+            <!-- dust particles -->
+            <circle class="ps-dust" cx="795" cy="510" r="1.5" style="animation-delay:0s"/>
+            <circle class="ps-dust" cx="805" cy="515" r="1" style="animation-delay:0.4s"/>
+            <circle class="ps-dust" cx="790" cy="520" r="1.2" style="animation-delay:0.8s"/>
+            <circle class="ps-dust" cx="810" cy="510" r="1" style="animation-delay:1.2s"/>
+            <circle class="ps-dust" cx="800" cy="525" r="1.5" style="animation-delay:1.6s"/>
+            <circle class="ps-dust" cx="797" cy="518" r="1" style="animation-delay:2.0s"/>
+            <circle class="ps-dust" cx="803" cy="522" r="1.2" style="animation-delay:2.4s"/>
+          </g>
+
+          <!-- crosshead measurement lines from the trolley to columns -->
+          <line class="ps-scanline" x1="292" y1="230" x2="760" y2="230"/>
+          <line class="ps-scanline" x1="840" y1="230" x2="1308" y2="230"/>
+        </g>
+
+        <!-- distant scanning lines (perspective hint) -->
+        <line class="ps-scanline" x1="100" y1="850" x2="1500" y2="850"/>
+        <line class="ps-scanline" x1="200" y1="870" x2="1400" y2="870" opacity="0.5"/>
+
+        <!-- top-left technical annotation -->
+        <g transform="translate(40 80)">
+          <line x1="0" y1="0" x2="40" y2="0" stroke="rgba(201,162,107,0.5)" stroke-width="0.8"/>
+          <line x1="0" y1="0" x2="0" y2="40" stroke="rgba(201,162,107,0.5)" stroke-width="0.8"/>
+          <text class="ps-text" x="6" y="-6">FIG · 01</text>
+          <text class="ps-text-dim" x="6" y="56">PRINT CYCLE</text>
+          <text class="ps-text-dim" x="6" y="68">IN PROGRESS</text>
+        </g>
+
+        <!-- bottom-right technical annotation -->
+        <g transform="translate(1480 850)">
+          <line x1="0" y1="0" x2="-40" y2="0" stroke="rgba(201,162,107,0.5)" stroke-width="0.8"/>
+          <line x1="0" y1="0" x2="0" y2="-40" stroke="rgba(201,162,107,0.5)" stroke-width="0.8"/>
+          <text class="ps-text" x="-70" y="14" text-anchor="end">SCALE 1:80</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1 class="editorial">
+      <span data-en>
+        We
+        <a href="design-build.html" class="pill"><span class="dot"></span>Design &amp; Build</a>
+        homes that do not burn, do not soak, do not yield.<br>
+        While giving builders the
+        <a href="technology.html" class="pill"><span class="dot"></span>Technology</a>
+        to print them, in <em>fourteen days</em>, from the sand under their feet.
+      </span>
+      <span data-ar>
+        نحن
+        <a href="design-build.html" class="pill"><span class="dot"></span>نُصمّم ونبني</a>
+        منازل لا تحترق، لا تتشرّب، ولا تتزعزع.
+        ونمنح البنّائين
+        <a href="technology.html" class="pill"><span class="dot"></span>التقنية</a>
+        ليطبعوها في <em>أربعة عشر يوماً</em> من الرمل تحت أقدامهم.
+      </span>
+    </h1>
+
+    <div class="home-tag">
+      <p class="lede">
+        <span data-en>3DHOPE is an Emirati building-technology company designing climate-tuned, mineral-printed homes for the Middle East. One arm. One mineral. One quiet night at a time.</span>
+        <span data-ar>٣دي‌هوب شركة بناء إماراتية تُصمّم منازل مطبوعة من المعدن، مُحسَّنة لمناخ الشرق الأوسط. ذراع واحدة. معدن واحد. ليلة هادئة واحدة في كل مرة.</span>
+      </p>
+      <div class="home-tag-meta">
+        <span><b>EST · 2024</b> &nbsp; ABU DHABI · RIYADH</span>
+        <span><span data-en>NOW PRINTING</span><span data-ar>تطبع الآن</span> · <b>SAADIYAT-04</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="scroll-cue" aria-hidden="true">
+    <span><span data-en>SCROLL TO PRINT</span><span data-ar>مرّر لتطبع</span></span>
+    <span class="bar"></span>
+  </div>
+</main>
+
+<!-- MARQUEE -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span data-en>Does not burn</span><span data-ar>لا يحترق</span>
+    <span data-en>Does not soak</span><span data-ar>لا يتشرّب</span>
+    <span data-en>Does not yield</span><span data-ar>لا يتزعزع</span>
+    <span data-en>Fourteen days</span><span data-ar>أربعة عشر يوماً</span>
+    <span data-en>One hundred years</span><span data-ar>مئة عام</span>
+    <span data-en>Local mineral</span><span data-ar>معدن محلي</span>
+    <span data-en>Does not burn</span><span data-ar>لا يحترق</span>
+    <span data-en>Does not soak</span><span data-ar>لا يتشرّب</span>
+    <span data-en>Does not yield</span><span data-ar>لا يتزعزع</span>
+    <span data-en>Fourteen days</span><span data-ar>أربعة عشر يوماً</span>
+    <span data-en>One hundred years</span><span data-ar>مئة عام</span>
+    <span data-en>Local mineral</span><span data-ar>معدن محلي</span>
+  </div>
+</div>
+
+<!-- WHAT WE DO -->
+<section class="ww wrap">
+  <div class="ww-head">
+    <div class="reveal">
+      <span class="eyebrow"><span data-en>WHAT WE DO</span><span data-ar>ما نقوم به</span></span>
+    </div>
+    <h2 class="h-2 reveal delay-1"><span data-en>Two arms of one studio — both pointing at the same wall.</span><span data-ar>ذراعان لاستوديو واحد — كلاهما يشيران إلى الجدار نفسه.</span></h2>
+  </div>
+
+  <div class="ww-cards">
+    <a href="design-build.html" class="ww-card reveal">
+      <div class="placeholder ph">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <div class="ph-row-top"><span class="label">IMG · CARD-01 · DESIGN</span><span class="label">→</span></div>
+        <div class="desc"><span data-en>// Finished villa exterior, dusk, warm interior glow.</span><span data-ar>// خارج فيلا مكتملة عند الغسق، توهج داخلي دافئ.</span></div>
+      </div>
+      <span class="eyebrow">/ 01</span>
+      <h3><span data-en>Design <em class="italic">&amp;</em> Build</span><span data-ar>التصميم <em class="italic">و</em> البناء</span></h3>
+      <div class="row">
+        <p><span data-en>From plot survey to handover keys. We design the home and print it ourselves, on your land, in two weeks.</span><span data-ar>من مسح الموقع إلى تسليم المفاتيح. نصمّم المنزل ونطبعه بأنفسنا، على أرضكم، في أسبوعين.</span></p>
+        <span class="go"><span data-en>EXPLORE</span><span data-ar>استكشف</span> <span class="arrow"></span></span>
+      </div>
+    </a>
+
+    <a href="technology.html" class="ww-card reveal delay-1">
+      <div class="placeholder ph">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <div class="ph-row-top"><span class="label">IMG · CARD-02 · TECH</span><span class="label">→</span></div>
+        <div class="desc"><span data-en>// HOPE-G12 gantry mid-print, dust haze, low side light.</span><span data-ar>// رافعة HOPE-G12 أثناء الطباعة، غبار خفيف، ضوء جانبي منخفض.</span></div>
+      </div>
+      <span class="eyebrow">/ 02</span>
+      <h3><span data-en>The <em class="italic">Technology</em></span><span data-ar><em class="italic">التقنية</em></span></h3>
+      <div class="row">
+        <p><span data-en>The HOPE-G12 gantry, MX-04 mineral binder, and the software that ties them together. Available to qualified builders.</span><span data-ar>رافعة HOPE-G12، رابط MX-04 المعدني، والبرمجيات التي تربطهما. متاحة للبنّائين المعتمدين.</span></p>
+        <span class="go"><span data-en>EXPLORE</span><span data-ar>استكشف</span> <span class="arrow"></span></span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="stat reveal"><b>14<small style="font-size:.4em;color:var(--fg-dim);margin-inline-start:.2em">d</small></b><span><span data-en>AVERAGE BUILD TIME</span><span data-ar>متوسط زمن البناء</span></span></div>
+  <div class="stat reveal delay-1"><b>62 <small style="font-size:.45em;color:var(--fg-dim)">MPa</small></b><span><span data-en>WALL COMPRESSION</span><span data-ar>قوة ضغط الجدار</span></span></div>
+  <div class="stat reveal delay-2"><b>−62<small style="font-size:.45em">%</small></b><span><span data-en>CO₂ VS. TRADITIONAL</span><span data-ar>الكربون مقارنةً بالتقليدي</span></span></div>
+  <div class="stat reveal delay-3"><b>100<small style="font-size:.4em;color:var(--fg-dim);margin-inline-start:.2em">yr</small></b><span><span data-en>DESIGN LIFESPAN</span><span data-ar>العمر التصميمي</span></span></div>
+</section>
+
+<!-- NEWS -->
+<section class="news wrap">
+  <div class="news-head">
+    <div class="reveal">
+      <span class="eyebrow"><span data-en>NEWSROOM</span><span data-ar>الأخبار</span></span>
+      <h2 class="h-2" style="margin-top:18px;max-width:18ch"><span data-en>The most recent things to come out of the printer.</span><span data-ar>أحدث ما خرج من الطابعة.</span></h2>
+    </div>
+    <a href="newsroom.html" class="btn ghost reveal delay-1"><span data-en>All stories</span><span data-ar>كل القصص</span> <span class="arrow"></span></a>
+  </div>
+  <div class="news-list">
+    <a href="newsroom.html">
+      <span class="nd-date">2026 · 04 · 18</span>
+      <span class="nd-title"><span data-en>Saadiyat-04 villa printed in 11 days.</span><span data-ar>طبع فيلا سعديات-٠٤ في ١١ يوماً.</span></span>
+      <span class="nd nd-desc"><span data-en>The fastest pour we have ever signed off — single gantry, no rework, walls passed compression on day eight.</span><span data-ar>أسرع طباعة وقّعناها — رافعة واحدة، بلا إعادة، الجدران اجتازت الضغط في اليوم الثامن.</span></span>
+      <span class="nv">FIELD NOTE</span>
+    </a>
+    <a href="newsroom.html">
+      <span class="nd-date">2026 · 03 · 02</span>
+      <span class="nd-title"><span data-en>MX-04 mineral binder is now Saudi-sourced.</span><span data-ar>رابط MX-04 المعدني أصبح من إنتاج سعودي.</span></span>
+      <span class="nd nd-desc"><span data-en>Our ground basalt now comes from Jabal Shada, 480 km from the nearest project. No more imports.</span><span data-ar>البازلت المطحون لدينا الآن من جبل شدا، على بُعد ٤٨٠ كم من أقرب مشروع. وداعاً للاستيراد.</span></span>
+      <span class="nv">SUPPLY</span>
+    </a>
+    <a href="newsroom.html">
+      <span class="nd-date">2026 · 01 · 21</span>
+      <span class="nd-title"><span data-en>Three HOPE-G12 gantries shipping to KSA.</span><span data-ar>ثلاث رافعات HOPE-G12 إلى المملكة العربية السعودية.</span></span>
+      <span class="nd nd-desc"><span data-en>A partnership with Riyadh Housing covers the first 120 homes in the Hail social-housing program.</span><span data-ar>شراكة مع الإسكان في الرياض تغطي أول ١٢٠ منزلاً في برنامج إسكان حائل.</span></span>
+      <span class="nv">PARTNERSHIP</span>
+    </a>
+    <a href="newsroom.html">
+      <span class="nd-date">2025 · 11 · 09</span>
+      <span class="nd-title"><span data-en>Fire test: 1100 °C, two hours, no spread.</span><span data-ar>اختبار الحريق: ١١٠٠°م، ساعتان، بلا انتشار.</span></span>
+      <span class="nd nd-desc"><span data-en>Independent lab in Dubai certified the MX-04 wall as EN 13501 class A1, the highest non-combustible rating.</span><span data-ar>اعتمد مختبر مستقل في دبي جدار MX-04 ضمن الفئة A1، أعلى تصنيف غير قابل للاشتعال.</span></span>
+      <span class="nv">CERT</span>
+    </a>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="nl">
+  <div class="nl-grid wrap">
+    <div class="reveal">
+      <span class="eyebrow"><span data-en>FOLLOW THE STORY</span><span data-ar>تابع القصة</span></span>
+      <h2 class="h-3" style="margin-top:18px"><span data-en>One letter every month — from the rail, the lab, the desert.</span><span data-ar>رسالة واحدة كل شهر — من السكة، المختبر، الصحراء.</span></h2>
+    </div>
+    <form class="nl-form reveal delay-1" onsubmit="event.preventDefault();this.querySelector('button').textContent='✓ SUBSCRIBED'">
+      <input type="email" required placeholder="you@domain.com">
+      <button type="submit"><span data-en>SUBSCRIBE</span><span data-ar>اشتراك</span></button>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="foot">
+  <div class="foot-grid">
+    <div>
+      <a href="index.html" class="logo">
+        <span class="mark">3D</span>
+        <span>3DHOPE</span>
+      </a>
+      <p class="foot-tag"><span data-en>Intelligent machines building homes for the new East — from the ground they stand on.</span><span data-ar>آلات ذكية تبني منازل الشرق الجديد — من الأرض التي تقوم عليها.</span></p>
+      <div class="socials">
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
+        <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="9" width="4" height="12"/><circle cx="5" cy="5" r="2"/><path d="M10 9h4v2c.7-1.4 2.1-2.3 3.7-2.3 2.9 0 4.3 1.9 4.3 5V21h-4v-6.5c0-1.5-.6-2.5-2-2.5s-2 1-2 2.5V21h-4z"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 8s-.2-1.4-.8-2c-.8-.8-1.7-.8-2.1-.9C16.1 5 12 5 12 5s-4.1 0-7.1.1c-.4 0-1.3.1-2.1.9C2.2 6.6 2 8 2 8S1.8 9.6 1.8 11.2v1.6c0 1.6.2 3.2.2 3.2s.2 1.4.8 2c.8.8 1.8.8 2.3.9 1.7.2 7 .2 7 .2s4.1 0 7.1-.2c.4 0 1.3-.1 2.1-.9.6-.6.8-2 .8-2s.2-1.6.2-3.2v-1.6c0-1.6-.2-3.2-.2-3.2zM10 14.6V8.4l5.2 3.1z"/></svg></a>
+        <a href="#" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 3H21l-6.4 7.3L22 21h-6l-4.7-6.1L5.9 21H3.2l6.8-7.8L2.6 3h6.2l4.2 5.6zm-1 16.5h1.6L7.7 4.4H6z"/></svg></a>
+      </div>
+    </div>
+    <div>
+      <h5><span data-en>EXPLORE</span><span data-ar>استكشف</span></h5>
+      <ul>
+        <li><a href="design-build.html"><span data-en>Design + Build</span><span data-ar>التصميم والبناء</span></a></li>
+        <li><a href="technology.html"><span data-en>Technology</span><span data-ar>التقنية</span></a></li>
+        <li><a href="design-build.html#projects"><span data-en>Projects</span><span data-ar>المشاريع</span></a></li>
+        <li><a href="newsroom.html"><span data-en>Newsroom</span><span data-ar>الأخبار</span></a></li>
+      </ul>
+    </div>
+    <div>
+      <h5><span data-en>STUDIOS</span><span data-ar>الاستوديوهات</span></h5>
+      <ul>
+        <li>Abu Dhabi · Saadiyat</li>
+        <li>Riyadh · KAFD</li>
+        <li>Sharjah · Al-Khan</li>
+        <li><a href="contact.html"><span data-en>Contact</span><span data-ar>تواصل</span></a></li>
+      </ul>
+    </div>
+    <div>
+      <h5><span data-en>LEGAL</span><span data-ar>قانوني</span></h5>
+      <ul>
+        <li><span data-en>Privacy</span><span data-ar>الخصوصية</span></li>
+        <li><span data-en>Terms</span><span data-ar>الشروط</span></li>
+        <li>NCR · ADCD · SASO</li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap" style="display:flex;justify-content:space-between;align-items:center;margin-top:60px;padding-top:30px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.15em;flex-wrap:wrap;gap:12px">
+    <span>© 3DHOPE LLC · 2026</span>
+    <span><span data-en>CARBON-NEUTRAL SINCE LAUNCH</span><span data-ar>محايد كربونياً منذ الانطلاق</span></span>
+    <span>v · 4.2 · 2026</span>
+  </div>
+</footer>
+
+<script>
+// ===== HOME-PAGE PARALLAX: 3D PRINTER SCENE =====
+(function(){
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const scene = document.getElementById('printerScene');
+  const homeBg = document.getElementById('homeBg');
+  const wallLayers = document.querySelectorAll('#wallLayers .wl');
+  if (!scene || !wallLayers.length) return;
+
+  // Initially hide all wall layers — they'll be revealed by scroll
+  wallLayers.forEach(l => {
+    l.style.opacity = '0';
+    l.style.transform = 'translateY(8px)';
+    l.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  });
+
+  let ticking = false;
+  function onScroll(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{
+      const y = window.scrollY;
+      const vh = window.innerHeight;
+
+      // Parallax 1: scene drifts up as you scroll, slight scale
+      // 0..vh maps to 0..−120px translate, 1.0..1.08 scale
+      const t = Math.min(1, y / vh);
+      const scenePx = -t * 80;
+      const sceneScale = 1 + t * 0.06;
+      scene.style.transform = `translateX(-50%) translateY(${scenePx}px) scale(${sceneScale})`;
+
+      // Parallax 2: background grid drifts subtly (already CSS perspective)
+      homeBg.style.transform = `translateY(${-y * 0.15}px)`;
+
+      // Reveal wall layers progressively as user scrolls through hero
+      // Each layer needs 1/N of the scroll range
+      const total = wallLayers.length;
+      const progress = Math.min(1, y / (vh * 0.85));
+      const visibleCount = Math.floor(progress * total);
+      wallLayers.forEach((layer, i)=>{
+        if (i < visibleCount){
+          layer.style.opacity = '1';
+          layer.style.transform = 'translateY(0)';
+        }
+      });
+
+      ticking = false;
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+<script src="assets/shared.js"></script>
+</body>
+</html>
