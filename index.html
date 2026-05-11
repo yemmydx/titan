@@ -10,9 +10,10 @@
 <link rel="stylesheet" href="assets/shared.css">
 <style>
   /* HOME-SPECIFIC */
-  .home{position:relative;min-height:120vh;display:flex;align-items:center;justify-content:center;padding:160px var(--pad) 120px}
+  .home{position:relative;min-height:120vh;display:flex;align-items:center;justify-content:center;padding:160px var(--pad) 120px;z-index:1}
+  .home .wrap{position:relative;z-index:2}
   .home-bg{
-    position:fixed;inset:0;z-index:-1;overflow:hidden;
+    position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none;
     background:
       radial-gradient(ellipse at 50% 18%, rgba(201,162,107,0.22), transparent 50%),
       radial-gradient(ellipse at 50% 100%, rgba(58,42,28,0.5), transparent 55%),
@@ -30,35 +31,36 @@
     -webkit-mask:linear-gradient(180deg, transparent 0%, transparent 35%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.9) 100%);
     transform-origin:center bottom;
     transform:perspective(900px) rotateX(60deg) translateY(60%) scale(2.4);
-    opacity:0.8;
+    opacity:0.6;
   }
   .home-bg::after{
     content:"";position:absolute;inset:0;
     background:
-      linear-gradient(180deg, rgba(10,10,10,0.15) 0%, rgba(10,10,10,0.0) 30%, rgba(10,10,10,0) 55%, rgba(10,10,10,0.55) 100%),
-      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
+      linear-gradient(180deg, rgba(10,10,10,0.15) 0%, rgba(10,10,10,0.0) 30%, rgba(10,10,10,0) 55%, rgba(10,10,10,0.4) 100%);
     pointer-events:none;
   }
 
-  /* the printer scene */
+  /* the printer scene — separate fixed layer above bg but below text */
   .printer-scene{
-    position:absolute;
-    left:50%;bottom:5%;
+    position:fixed;
+    left:50%;bottom:-2vh;
     width:min(1400px,96vw);
     aspect-ratio:16/9;
     transform:translateX(-50%);
     pointer-events:none;
     will-change:transform;
+    z-index:-1;
+    opacity:1;
   }
   .printer-scene svg{width:100%;height:100%;overflow:visible}
-  .ps-rail{stroke:rgba(201,162,107,0.35);stroke-width:1.2;fill:none}
-  .ps-rail-tick{stroke:rgba(201,162,107,0.5);stroke-width:1}
-  .ps-frame{stroke:var(--accent);stroke-width:1.5;fill:none;opacity:0.9}
-  .ps-frame-soft{stroke:rgba(201,162,107,0.6);stroke-width:1;fill:none}
-  .ps-fill{fill:rgba(201,162,107,0.05);stroke:var(--accent);stroke-width:1.2}
-  .ps-text{fill:rgba(201,162,107,0.55);font-family:var(--mono);font-size:9px;letter-spacing:0.12em}
-  .ps-text-dim{fill:rgba(189,182,168,0.4);font-family:var(--mono);font-size:8px;letter-spacing:0.1em}
-  .ps-tick{stroke:rgba(189,182,168,0.3);stroke-width:1}
+  .ps-rail{stroke:rgba(201,162,107,0.55);stroke-width:1.4;fill:none}
+  .ps-rail-tick{stroke:rgba(201,162,107,0.7);stroke-width:1}
+  .ps-frame{stroke:var(--accent);stroke-width:1.8;fill:none;opacity:1}
+  .ps-frame-soft{stroke:rgba(201,162,107,0.8);stroke-width:1.2;fill:none}
+  .ps-fill{fill:rgba(201,162,107,0.08);stroke:var(--accent);stroke-width:1.4}
+  .ps-text{fill:rgba(201,162,107,0.75);font-family:var(--mono);font-size:9px;letter-spacing:0.12em}
+  .ps-text-dim{fill:rgba(189,182,168,0.55);font-family:var(--mono);font-size:8px;letter-spacing:0.1em}
+  .ps-tick{stroke:rgba(189,182,168,0.45);stroke-width:1}
   /* the gantry — moves horizontally */
   .ps-gantry{
     transform-origin:center;
@@ -338,10 +340,11 @@
     <span class="ps-tag tr"><span data-en>GANTRY · HOPE-G12</span><span data-ar>الرافعة · HOPE-G12</span></span>
     <span class="ps-tag bl">LAT · 24.4539° N &nbsp; LON · 54.3773° E</span>
     <span class="ps-tag br"><span data-en>LAYER 047 / 210</span><span data-ar>الطبقة ٠٤٧ / ٢١٠</span></span>
+  </div>
 
-    <!-- 3D printer scene -->
-    <div class="printer-scene" id="printerScene">
-      <svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <!-- 3D printer scene (separate fixed layer) -->
+  <div class="printer-scene" id="printerScene">
+    <svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stop-color="rgba(201,162,107,0.18)"/>
@@ -514,7 +517,6 @@
           <text class="ps-text" x="-70" y="14" text-anchor="end">SCALE 1:80</text>
         </g>
       </svg>
-    </div>
   </div>
 
   <div class="wrap">
